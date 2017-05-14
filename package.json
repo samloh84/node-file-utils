@@ -1,0 +1,30 @@
+{
+  "name": "@lohsy84/file-utils",
+  "version": "2.0.0",
+  "description": "File Utility that wraps Node.js File system methods in Bluebird Promises, along with implementations of some GNU Core Utilities.",
+  "main": "index.js",
+  "scripts": {
+    "jsdoc": "node_modules/.bin/jsdoc --configure jsdoc.conf.json ./",
+    "test": "node_modules/.bin/mocha --require test/test.bootstrap.js --grep *Spec.js --recursive"
+  },
+  "author": "Samuel Loh Yin Kang <samuel.loh.yk@gmail.com>",
+  "license": "MIT",
+  "dependencies": {
+    "bluebird": "^3.4.7",
+    "lodash": "^4.17.4"
+  },
+  "devDependencies": {
+    "chai": "^3.5.0",
+    "chai-as-promised": "^6.0.0",
+    "jsdoc": "^3.4.3",
+    "mocha": "^3.3.0"
+  },
+  "bugs": {
+    "url": "https://github.com/samloh84/node-file-utils/issues",
+    "email": "samuel.loh.yk@gmail.com"
+  },
+  "repository": {
+    "url": "https://github.com/samloh84/node-file-utils",
+    "type": "git"
+  }
+}
