@@ -1,1 +1,1 @@
-HTTP/S Request Utility that wraps Node.js HTTP and HTTPS request methods in Bluebird Promises.
+File Utility that wraps Node.js File system methods in Bluebird Promises, along with implementations of some GNU Core Utilities.
