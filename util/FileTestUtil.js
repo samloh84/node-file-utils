@@ -1,6 +1,10 @@
 const fs = require('fs');
 const _path = require('path');
 const _ = require('lodash');
+
+const FILE_UTIL_TEST_TMP_DIR_ROOT = _.get(process, 'env.FILE_UTIL_TEST_TMP_DIR_ROOT', '/tmp');
+const FILE_UTIL_TEST_TMP_DIR_PREFIX = _.get(process, 'env.FILE_UTIL_TEST_TMP_DIR_PREFIX', 'FileUtilTest-');
+
 var FileTestUtil = {};
 FileTestUtil.randomString = function (length) {
     if (_.isNil(length)) {
@@ -17,7 +21,7 @@ FileTestUtil.randomString = function (length) {
 
 FileTestUtil.mkdtemp = function (prefix) {
     if (_.isNil(prefix)) {
-        prefix = '/tmp/FileUtilSpecs-';
+        prefix = _path.resolve(FILE_UTIL_TEST_TMP_DIR_ROOT, FILE_UTIL_TEST_TMP_DIR_PREFIX);
     }
 
     return fs.mkdtempSync(prefix);
