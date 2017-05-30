@@ -1,43 +1,20 @@
 const Promise = require('bluebird');
-const mocha = require('mocha');
-const describe = mocha.describe,
-    it = mocha.it,
-    before = mocha.before,
-    beforeEach = mocha.beforeEach,
-    after = mocha.after,
-    afterEach = mocha.afterEach;
-const chai = require("chai");
+
 const util = require('util');
 const FileUtil = require('../../lib/index').FileUtil;
 const CoreUtil = require('../../lib/index').CoreUtil;
 const fs = require('fs');
 const _path = require('path');
 const _ = require('lodash');
-const FileTestUtil = require('../../util/FileTestUtil');
-const chaiAsPromised = require("chai-as-promised");
-
-chaiAsPromised.transferPromiseness = function (assertion, promise) {
-    _.each(Promise.prototype, function (fn, fnName) {
-        if (_.isFunction(fn)) {
-            _.set(assertion, fnName, fn.bind(Promise.resolve(promise)));
-        }
-    });
-};
-
-chai.use(chaiAsPromised);
-chai.should();
-chai.config.includeStack = true;
 
 describe("CoreUtil", function () {
     before(function () {
         var variables = this;
-        variables.tempDir = FileTestUtil.mkdtemp();
+        variables.tempDir = TestUtil.createDirectory();
     });
-
     after(function () {
         var variables = this;
-        var tempDir = variables.tempDir;
-        FileTestUtil.rmrf(tempDir);
+        TestUtil.fs.rm({path: variables.tempDir.parent});
     });
 
     describe("rm()", function () {
@@ -46,9 +23,7 @@ describe("CoreUtil", function () {
             beforeEach(function () {
                 var variables = this;
                 var tempDir = variables.tempDir;
-                var tempFile = variables.tempFile = _path.resolve(tempDir, FileTestUtil.randomString(10));
-                var tempFileContents = variables.tempFileContents = FileTestUtil.randomString(32);
-                FileTestUtil.writeFileSync(tempFile, tempFileContents, {mode: FileUtil.constants.S_IRWXU});
+                variables.tempFile = TestUtil.generateRandomFile({parent: tempDir.path});
             });
 
             it("should delete a file", function () {
@@ -56,9 +31,9 @@ describe("CoreUtil", function () {
                 var tempDir = variables.tempDir;
                 var tempFile = variables.tempFile;
                 var tempFileContents = variables.tempFileContents;
-                var tempFileDestination = variables.tempFileDestination = _path.resolve(tempDir, FileTestUtil.randomString(10));
+                var tempFileDestination = variables.tempFileDestination = _path.resolve(tempDir.path, TestUtil.random.getString(10));
 
-                return CoreUtil.rm({path: tempFile})
+                return CoreUtil.rm({path: tempFile.path})
                     .catch(function (err) {
                         console.error(err);
                         throw err;
@@ -66,11 +41,18 @@ describe("CoreUtil", function () {
                     .should.be.fulfilled
                     .then(function () {
 
-                        (function () {
-                            return fs.accessSync(tempFile)
-                        })
-                            .should.throw();
 
+                        var check = function () {
+                            try {
+                                var stats = TestUtil.fs.stat({path: tempFile.path});
+
+                                expect(stats).to.be.null;
+                            } catch (err) {
+                                console.error(err);
+                                throw err;
+                            }
+                        };
+                        check.should.not.throw();
                     })
             });
         });
@@ -80,51 +62,37 @@ describe("CoreUtil", function () {
             beforeEach(function () {
                 var variables = this;
                 var tempDir = variables.tempDir;
+                variables.fileTree = TestUtil.createFileTree({parent: tempDir.path});
 
-                var tempWorkDir = variables.tempWorkDir = _path.resolve(tempDir, FileTestUtil.randomString(10));
-                FileTestUtil.mkdir(tempWorkDir);
-
-                var tempSubDirs = variables.tempSubDirs = [];
-                var tempFiles = variables.tempFiles = [];
-                var tempFilesContents = variables.tempFilesContents = [];
-                for (var i = 0; i < Math.ceil(Math.random() * 9) + 1; i++) {
-                    tempSubDirs[i] = _path.resolve(tempWorkDir, FileTestUtil.randomString(10));
-
-                    FileTestUtil.mkdir(tempSubDirs[i]);
-
-                    for (var j = 0; j < Math.ceil(Math.random() * 9) + 1; j++) {
-                        tempFiles[j] = _path.resolve(tempSubDirs[i], FileTestUtil.randomString(10));
-                        tempFilesContents[j] = FileTestUtil.randomString(32);
-
-                        FileTestUtil.writeFileSync(tempFiles[j], tempFilesContents[j], {mode: FileUtil.constants.S_IRWXU});
-                    }
-                }
 
             });
 
             it("should remove a file tree", function () {
                 var variables = this;
-                var tempWorkDir = variables.tempWorkDir;
 
-                var tempSubDirs = variables.tempSubDirs;
                 var tempDir = variables.tempDir;
-                var tempFiles = variables.tempFiles;
-                var tempFilesContents = variables.tempFilesContents;
+                var fileTree = variables.fileTree;
 
-                return CoreUtil.rm({path: tempWorkDir, recursive: true})
+
+                return CoreUtil.rm({path: fileTree.path, recursive: true})
                     .catch(function (err) {
                         console.error(err);
                         throw err;
                     })
                     .should.be.fulfilled
                     .then(function () {
-                        for (var i = 0; i < tempFiles.length; i++) {
-                            (function () {
-                                return fs.accessSync(tempFiles[i])
-                            })
-                                .should.throw();
+                        TestUtil.walkFileTree(fileTree, function (file, stats) {
+                            var check = function () {
+                                try {
+                                    expect(stats).to.be.null;
+                                } catch (err) {
+                                    console.error(err);
+                                    throw err;
+                                }
+                            };
+                            check.should.not.throw();
 
-                        }
+                        }, true);
 
                     })
             });

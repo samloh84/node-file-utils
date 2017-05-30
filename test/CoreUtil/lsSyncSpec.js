@@ -1,43 +1,20 @@
 const Promise = require('bluebird');
-const mocha = require('mocha');
-const describe = mocha.describe,
-    it = mocha.it,
-    before = mocha.before,
-    beforeEach = mocha.beforeEach,
-    after = mocha.after,
-    afterEach = mocha.afterEach;
-const chai = require("chai");
+
 const util = require('util');
 const FileUtil = require('../../lib/index').FileUtil;
 const CoreUtil = require('../../lib/index').CoreUtil;
 const fs = require('fs');
 const _path = require('path');
 const _ = require('lodash');
-const FileTestUtil = require('../../util/FileTestUtil');
-const chaiAsPromised = require("chai-as-promised");
-
-chaiAsPromised.transferPromiseness = function (assertion, promise) {
-    _.each(Promise.prototype, function (fn, fnName) {
-        if (_.isFunction(fn)) {
-            _.set(assertion, fnName, fn.bind(Promise.resolve(promise)));
-        }
-    });
-};
-
-chai.use(chaiAsPromised);
-chai.should();
-chai.config.includeStack = true;
 
 describe("CoreUtil", function () {
     before(function () {
         var variables = this;
-        variables.tempDir = FileTestUtil.mkdtemp();
+        variables.tempDir = TestUtil.createDirectory();
     });
-
     after(function () {
         var variables = this;
-        var tempDir = variables.tempDir;
-        FileTestUtil.rmrf(tempDir);
+        TestUtil.fs.rm({path: variables.tempDir.parent});
     });
 
     describe("lsSync()", function () {
@@ -47,14 +24,7 @@ describe("CoreUtil", function () {
             beforeEach(function () {
                 var variables = this;
                 var tempDir = variables.tempDir;
-
-                var tempFiles = variables.tempFiles = [];
-                var tempFilesContents = variables.tempFilesContents = [];
-                for (var i = 0; i < Math.ceil(Math.random() * 9) + 1; i++) {
-                    tempFiles[i] = _path.resolve(tempDir, FileTestUtil.randomString(10));
-                    tempFilesContents[i] = FileTestUtil.randomString(32);
-                    FileTestUtil.writeFileSync(tempFiles[i], tempFilesContents[i], {mode: CoreUtil.constants.S_IRWXU | CoreUtil.constants.S_IRWXG});
-                }
+                variables.tempFiles = TestUtil.generateRandomFiles({parent: tempDir.path});
             });
 
 
@@ -68,7 +38,7 @@ describe("CoreUtil", function () {
                 var files = null;
                 (function () {
                     try {
-                        files = CoreUtil.lsSync({path: tempDir})
+                        files = CoreUtil.lsSync({path: tempDir.path})
                     } catch (err) {
                         console.error(err);
                         throw err;
@@ -76,14 +46,14 @@ describe("CoreUtil", function () {
                 })
                     .should.not.throw();
 
-                console.log(util.inspect(files, {depth:null}));
+                console.log(util.inspect(files, {depth: null}));
 
                 _.each(tempFiles, function (tempFile) {
-                    _.find(files, {path: tempFile}).should.not.be.undefined;
+                    expect(_.find(files, {path: tempFile.path}), 'Could not find ' + tempFile.path + ' in ls output').to.not.be.undefined;
                 })
 
             });
-        })
+        });
 
 
         describe("on a source directory path with target directory path and recursive = true", function () {
@@ -91,43 +61,21 @@ describe("CoreUtil", function () {
                 var variables = this;
                 var tempDir = variables.tempDir;
 
-                var tempWorkDir = variables.tempWorkDir = _path.resolve(tempDir, FileTestUtil.randomString(10));
-                FileTestUtil.mkdir(tempWorkDir);
-
-                var tempSubDirs = variables.tempSubDirs = [];
-                var tempFiles = variables.tempFiles = [];
-                var tempFilesContents = variables.tempFilesContents = [];
-                for (var i = 0; i < Math.ceil(Math.random() * 9) + 1; i++) {
-                    tempSubDirs[i] = _path.resolve(tempWorkDir, FileTestUtil.randomString(10));
-
-                    FileTestUtil.mkdir(tempSubDirs[i]);
-
-                    for (var j = 0; j < Math.ceil(Math.random() * 9) + 1; j++) {
-                        tempFiles[j] = _path.resolve(tempSubDirs[i], FileTestUtil.randomString(10));
-                        tempFilesContents[j] = FileTestUtil.randomString(32);
-
-                        FileTestUtil.writeFileSync(tempFiles[j], tempFilesContents[j], {mode: FileUtil.constants.S_IRWXU});
-                    }
-                }
+                variables.fileTree = TestUtil.createFileTree({parent: tempDir.path});
 
             });
 
             it("should list a file tree recursively", function () {
                 var variables = this;
-                var tempWorkDir = variables.tempWorkDir;
 
-                var tempSubDirs = variables.tempSubDirs;
                 var tempDir = variables.tempDir;
-                var tempFiles = variables.tempFiles;
-                var tempFilesContents = variables.tempFilesContents;
-
-                var tempWorkDirDestination = variables.tempWorkDirDestination = _path.resolve(tempDir, FileTestUtil.randomString(10));
+                var fileTree = variables.fileTree;
 
 
                 var files = null;
                 (function () {
                     try {
-                        files = CoreUtil.lsSync({path: tempWorkDir, recursive: true})
+                        files = CoreUtil.lsSync({path: fileTree.path, recursive: true})
                     } catch (err) {
                         console.error(err);
                         throw err;
@@ -135,11 +83,18 @@ describe("CoreUtil", function () {
                 })
                     .should.not.throw();
 
-                console.log(util.inspect(files, {depth:null}));
+                console.log(util.inspect(files, {depth: null}));
 
-                _.each(tempFiles, function (tempFile) {
-                    _.find(files, {path: tempFile}).should.not.be.undefined;
+                TestUtil.walkFileTree(fileTree, function (file, stats) {
+                    var check = function () {
+
+                        var value = _.find(files, {path: file.path});
+                        expect(value, 'Could not find file ' + file.path + ' in ls output').to.not.be.undefined;
+                    };
+
+                    check.should.not.throw();
                 });
+
 
             });
         })

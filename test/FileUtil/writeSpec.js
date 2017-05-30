@@ -1,42 +1,19 @@
 const Promise = require('bluebird');
-const mocha = require('mocha');
-const describe = mocha.describe,
-    it = mocha.it,
-    before = mocha.before,
-    beforeEach = mocha.beforeEach,
-    after = mocha.after,
-    afterEach = mocha.afterEach;
-const chai = require("chai");
+
 const util = require('util');
 const FileUtil = require('../../lib/index').FileUtil;
 const fs = require('fs');
 const _path = require('path');
 const _ = require('lodash');
-const FileTestUtil = require('../../util/FileTestUtil');
-const chaiAsPromised = require("chai-as-promised");
-
-chaiAsPromised.transferPromiseness = function (assertion, promise) {
-    _.each(Promise.prototype, function (fn, fnName) {
-        if (_.isFunction(fn)) {
-            _.set(assertion, fnName, fn.bind(Promise.resolve(promise)));
-        }
-    });
-};
-
-chai.use(chaiAsPromised);
-chai.should();
-chai.config.includeStack = true;
 
 describe("FileUtil", function () {
     before(function () {
         var variables = this;
-        variables.tempDir = FileTestUtil.mkdtemp();
+        variables.tempDir = TestUtil.createDirectory();
     });
-
     after(function () {
         var variables = this;
-        var tempDir = variables.tempDir;
-        FileTestUtil.rmrf(tempDir);
+        TestUtil.fs.rm({path: variables.tempDir.parent});
     });
 
     describe("write()", function () {
@@ -44,7 +21,7 @@ describe("FileUtil", function () {
         beforeEach(function () {
             var variables = this;
             var tempDir = variables.tempDir;
-            var tempFile = variables.tempFile = _path.resolve(tempDir, FileTestUtil.randomString(10));
+            var tempFile = variables.tempFile = _path.resolve(tempDir.path, TestUtil.random.getString(10));
             variables.tempFileFd = fs.openSync(tempFile, 'w+');
 
         });
@@ -59,7 +36,7 @@ describe("FileUtil", function () {
             it("should write to the supplied file descriptor", function () {
                 var variables = this;
                 var tempFile = variables.tempFile;
-                var tempFileContents = variables.tempFileContents = FileTestUtil.randomString(32);
+                var tempFileContents = variables.tempFileContents = TestUtil.random.getString(32);
                 var tempFileFd = variables.tempFileFd;
                 var tempFileContentsBuffer = Buffer.from(tempFileContents);
                 return FileUtil.write({fd: tempFileFd, buffer: tempFileContentsBuffer})
@@ -69,7 +46,6 @@ describe("FileUtil", function () {
                     })
                     .should.be.fulfilled
                     .then(function () {
-
                         var text = fs.readFileSync(tempFile);
                         text.toString().should.equal(tempFileContents);
                     });
@@ -81,7 +57,7 @@ describe("FileUtil", function () {
             it("should write to the supplied file descriptor", function () {
                 var variables = this;
                 var tempFile = variables.tempFile;
-                var tempFileContents = variables.tempFileContents = FileTestUtil.randomString(32);
+                var tempFileContents = variables.tempFileContents = TestUtil.random.getString(32);
                 var tempFileFd = variables.tempFileFd;
 
                 return FileUtil.write({fd: tempFileFd, string: tempFileContents})
