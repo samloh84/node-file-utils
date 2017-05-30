@@ -39,7 +39,7 @@ describe("FileUtil", function () {
                 var tempFileContents = variables.tempFileContents = TestUtil.random.getString(32);
                 var tempFileFd = variables.tempFileFd;
                 var tempFileContentsBuffer = Buffer.from(tempFileContents);
-                return FileUtil.write({fd: tempFileFd, buffer: tempFileContentsBuffer})
+                return FileUtil.write({fd: tempFileFd, data: tempFileContentsBuffer})
                     .catch(function (err) {
                         console.error(err);
                         throw err;
@@ -60,7 +60,7 @@ describe("FileUtil", function () {
                 var tempFileContents = variables.tempFileContents = TestUtil.random.getString(32);
                 var tempFileFd = variables.tempFileFd;
 
-                return FileUtil.write({fd: tempFileFd, string: tempFileContents})
+                return FileUtil.write({fd: tempFileFd, data: tempFileContents})
                     .catch(function (err) {
                         console.error(err);
                         throw err;

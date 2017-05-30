@@ -45,7 +45,7 @@ describe("FileUtil", function () {
                 (function () {
                     try {
 
-                        return FileUtil.writeSync({fd: tempFileFd, buffer: tempFileContentsBuffer})
+                        return FileUtil.writeSync({fd: tempFileFd, data: tempFileContentsBuffer})
                     } catch (err) {
                         console.error(err);
                         throw err;
@@ -71,7 +71,7 @@ describe("FileUtil", function () {
                 (function () {
                     try {
 
-                        return FileUtil.writeSync({fd: tempFileFd, string: tempFileContents})
+                        return FileUtil.writeSync({fd: tempFileFd, data: tempFileContents})
                     } catch (err) {
                         console.error(err);
                         throw err;
